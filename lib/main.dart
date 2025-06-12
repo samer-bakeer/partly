@@ -8,7 +8,7 @@ class PartlyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Partly',
       theme: ThemeData(
-        primaryColor: Color(0xFFFFA000), // اللون البرتقالي المائل للأصفر
+        primaryColor: Color(0xFFFFA000),
         scaffoldBackgroundColor: Colors.grey[100],
         fontFamily: 'Roboto',
         appBarTheme: AppBarTheme(
@@ -19,15 +19,44 @@ class PartlyApp extends StatelessWidget {
           secondary: Colors.orange[300],
         ),
       ),
-      home: HomeScreen(),
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: HomeScreen(),
+      ),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  final Color primary = Color(0xFFFFA000); // برتقالي مائل للأصفر
-  final Color secondary = Colors.orange[300]!; // لون ثانوي
+class HomeScreen extends StatefulWidget {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final Color primary = Color(0xFFFFA000);
+  final Color secondary = Colors.orange[300]!;
+
+  String? selectedBrand;
+  String? selectedModel;
+  String? selectedYear;
+
+  final Map<String, List<String>> modelsByBrand = {
+    'تويوتا': ['كورولا', 'كامري', 'هايلوكس'],
+    'هيونداي': ['النترا', 'سوناتا', 'توسان'],
+    'كيا': ['سيراتو', 'سبورتاج'],
+  };
+
+  final Map<String, List<String>> yearsByModel = {
+    'كورولا': ['2020', '2021', '2022'],
+    'كامري': ['2019', '2020'],
+    'هايلوكس': ['2018', '2019'],
+    'النترا': ['2020', '2023'],
+    'سوناتا': ['2021'],
+    'توسان': ['2022'],
+    'سيراتو': ['2020'],
+    'سبورتاج': ['2019', '2021'],
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -44,15 +73,9 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         padding: EdgeInsets.all(20),
         children: [
-          _buildSearchBar(),
+          buildCarSelector(),
           SizedBox(height: 16),
           _buildImageUploadButton(),
-          SizedBox(height: 24),
-          _buildFilters(),
-          SizedBox(height: 24),
-          _buildPromoCard(),
-          SizedBox(height: 24),
-          _buildCarTypeSection(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -69,16 +92,61 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar() {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: 'ابحث عن قطعة...',
-        prefixIcon: Icon(Icons.search),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: EdgeInsets.symmetric(vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+  Widget buildCarSelector() {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("اختر السيارة:",
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: primary)),
+            SizedBox(height: 10),
+            ExpansionTile(
+              title: Text(selectedBrand != null
+                  ? "$selectedBrand / $selectedModel / $selectedYear"
+                  : 'اختر الماركة'),
+              children: modelsByBrand.keys.map((brand) {
+                return ExpansionTile(
+                  title: Text(brand),
+                  children: modelsByBrand[brand]!.map((model) {
+                    return ExpansionTile(
+                      title: Text(model),
+                      children: (yearsByModel[model] ?? []).map((year) {
+                        return ListTile(
+                          title: Text(year),
+                          onTap: () {
+                            setState(() {
+                              selectedBrand = brand;
+                              selectedModel = model;
+                              selectedYear = year;
+                            });
+                            Navigator.pop(context);
+                          },
+                          selected: selectedBrand == brand &&
+                              selectedModel == model &&
+                              selectedYear == year,
+                          selectedTileColor: Colors.orange[50],
+                        );
+                      }).toList(),
+                    );
+                  }).toList(),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 10),
+            if (selectedBrand != null &&
+                selectedModel != null &&
+                selectedYear != null)
+              Text(
+                'تم اختيار: $selectedBrand / $selectedModel / $selectedYear',
+                style: TextStyle(
+                    color: Colors.green[700], fontWeight: FontWeight.w600),
+              )
+          ],
         ),
       ),
     );
@@ -95,82 +163,6 @@ class HomeScreen extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
-    );
-  }
-
-  Widget _buildFilters() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("تصفية حسب:",
-            style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: primary)),
-        SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          children: ['ماركة', 'موديل', 'سنة']
-              .map((label) => FilterChip(
-                    label: Text(label),
-                    onSelected: (_) {},
-                    selected: false,
-                    backgroundColor: Colors.orange[100],
-                    shape: StadiumBorder(side: BorderSide(color: secondary)),
-                  ))
-              .toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPromoCard() {
-    return Card(
-      color: Colors.orange[100],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(Icons.local_offer, color: Colors.orange[800]),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text('🔥 عروض خاصة على قطع تويوتا!',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCarTypeSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("اختر نوع السيارة:",
-            style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: primary)),
-        SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          children: ['تويوتا', 'هيونداي', 'كيا', 'BMW', 'مرسيدس', 'فورد']
-              .map((name) => Container(
-                    decoration: BoxDecoration(
-                      color: secondary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    alignment: Alignment.center,
-                    padding: EdgeInsets.all(10),
-                    child: Text(name,
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w600)),
-                  ))
-              .toList(),
-        ),
-      ],
     );
   }
 }
